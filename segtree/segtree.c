@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include "segtree_iterator.h"
 
+/* Object methods */
+
 static void
 segtree_dealloc(PyObject *op)
 {
@@ -34,7 +36,30 @@ segtree_init(PyObject *op, PyObject *args, PyObject *kwds)
     }
     memset(self->tree, 0, sizeof(int) * 2 * self->size);
     return 0;
-}
+};
+
+static PyObject*
+segtree_iter(PyObject* op)
+{
+    segtreeobject* self = (segtreeobject*) op;
+    segtreeiterobject *it = PyObject_New(segtreeiterobject, &segtreeiter_type);
+    if (it == NULL) {
+        return NULL;
+    }
+    it->segtree = self;
+    Py_INCREF(self);
+    it->index = 0;
+    return (PyObject *) it;
+};
+
+/* Sequence methods */
+
+static Py_ssize_t
+segtree_len(PyObject* op)
+{
+    segtreeobject* self = (segtreeobject*) op;
+    return self->size;
+};
 
 static PyObject*
 segtree_getitem(PyObject *op, Py_ssize_t index)
@@ -45,7 +70,7 @@ segtree_getitem(PyObject *op, Py_ssize_t index)
         return NULL;
     }
     return PyLong_FromLong(self->tree[self->size + index]);
-}
+};
 
 static int
 segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
@@ -62,33 +87,15 @@ segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
         index >>= 1;
     }
     return 0;
-}
-
-static PyMemberDef segtree_members[] = {
-    {"size", Py_T_PYSSIZET, offsetof(segtreeobject, size), 0, "size"},
-    {NULL},
 };
 
-static Py_ssize_t
-segtree_len(PyObject* op)
-{
-    segtreeobject* self = (segtreeobject*) op;
-    return self->size;
+static PySequenceMethods segtree_sequence_methods = {
+    .sq_length = segtree_len,
+    .sq_item = segtree_getitem,
+    .sq_ass_item = segtree_setitem,
 };
 
-static PyObject*
-segtree_iter(PyObject* op)
-{
-    segtreeobject* self = (segtreeobject*) op;
-    segtreeiterobject *it = PyObject_New(segtreeiterobject, &segtreeiter_type);
-    if (it == NULL) {
-        return NULL;
-    }
-    it->segtree = self;
-    Py_INCREF(self);
-    it->index = 0;
-    return (PyObject *) it;
-}
+/* Methods */
 
 static PyObject*
 segtree_query(PyObject *op, PyObject *args)
@@ -116,11 +123,7 @@ static PyMethodDef segtree_methods[] = {
     {NULL, NULL, 0, NULL},
 };
 
-static PySequenceMethods segtree_sequence_methods = {
-    .sq_length = segtree_len,
-    .sq_item = segtree_getitem,
-    .sq_ass_item = segtree_setitem,
-};
+/* Type object */
 
 static PyTypeObject segtreetype = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
@@ -134,7 +137,6 @@ static PyTypeObject segtreetype = {
     .tp_dealloc = segtree_dealloc,
     .tp_iter = segtree_iter,
     .tp_as_sequence = &segtree_sequence_methods,
-    .tp_members = segtree_members,
     .tp_methods = segtree_methods,
 };
 
