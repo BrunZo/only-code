@@ -77,7 +77,7 @@ static PyObject* segtree_query(PyObject *op, PyObject *args)
         return NULL;
     }
     lf += self->size;
-    rg += self->size + 1;
+    rg += self->size;
     int pf = 0, sf = 0;
     while (lf < rg) {
         if (lf & 1) pf = pf + self->tree[lf++];
