@@ -36,6 +36,34 @@ segtree_init(PyObject *op, PyObject *args, PyObject *kwds)
     return 0;
 }
 
+static PyObject*
+segtree_getitem(PyObject *op, Py_ssize_t index)
+{
+    segtreeobject *self = (segtreeobject*) op;
+    if (index < 0 || index >= self->size) {
+        PyErr_SetString(PyExc_IndexError, "index out of range");
+        return NULL;
+    }
+    return PyLong_FromLong(self->tree[self->size + index]);
+}
+
+static int
+segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
+{
+    segtreeobject *self = (segtreeobject*) op;
+    if (index < 0 || index >= self->size) {
+        PyErr_SetString(PyExc_IndexError, "index out of range");
+        return -1;
+    }
+    index += self->size;    
+    self->tree[index] = PyLong_AsLong(value);
+    while (index > 1) {
+        self->tree[index>>1] = self->tree[index] + self->tree[index^1];
+        index >>= 1;
+    }
+    return 0;
+}
+
 static PyMemberDef segtree_members[] = {
     {"size", Py_T_PYSSIZET, offsetof(segtreeobject, size), 0, "size"},
     {NULL},
@@ -63,24 +91,6 @@ segtree_iter(PyObject* op)
 }
 
 static PyObject*
-segtree_set_one(PyObject *op, PyObject *args)
-{
-    segtreeobject* self = (segtreeobject*) op;
-    int pos, val;
-    if (!PyArg_ParseTuple(args, "ii", &pos, &val)) {
-        return NULL;
-    }
-    pos += self->size;
-    self->tree[pos] = val;
-    while (pos > 1) {
-        self->tree[pos>>1] = self->tree[pos] + self->tree[pos^1];
-        pos >>= 1;
-    } 
-
-    Py_RETURN_NONE;
-}
-
-static PyObject*
 segtree_query(PyObject *op, PyObject *args)
 {
     segtreeobject* self = (segtreeobject*) op;
@@ -102,13 +112,14 @@ segtree_query(PyObject *op, PyObject *args)
 }
 
 static PyMethodDef segtree_methods[] = {
-    {"set_one", segtree_set_one, METH_VARARGS, "Set a value in a position"},
     {"query", segtree_query, METH_VARARGS, "Query a range [l, r)"},
     {NULL, NULL, 0, NULL},
 };
 
 static PySequenceMethods segtree_sequence_methods = {
     .sq_length = segtree_len,
+    .sq_item = segtree_getitem,
+    .sq_ass_item = segtree_setitem,
 };
 
 static PyTypeObject segtreetype = {
