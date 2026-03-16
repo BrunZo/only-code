@@ -22,9 +22,10 @@ segtreeiter_iternext(PyObject *op)
     if (it->index >= (Py_ssize_t)it->segtree->size) {
         return NULL;
     }
-    int val = it->segtree->tree[it->segtree->size + it->index];
+    PyObject* val = it->segtree->tree[it->segtree->size + it->index];
+    Py_INCREF(val);
     it->index++;
-    return PyLong_FromLong(val);
+    return val;
 }
 
 static PyObject*

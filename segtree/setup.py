@@ -1,7 +1,7 @@
 from setuptools import setup, Extension
 
 # Define the extension module
-module = Extension("segtree", sources=["segtree.c"])
+module = Extension("segtree", sources=["segtree/segtree.c"])
 
 setup(
     name="Segtree",

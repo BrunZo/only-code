@@ -4,14 +4,6 @@
 
 /* Object methods */
 
-static void
-segtree_dealloc(PyObject *op)
-{
-    segtreeobject *self = (segtreeobject*) op;
-    free(self->tree);
-    Py_TYPE(self)->tp_free(self);
-}
-
 static PyObject*
 segtree_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -22,21 +14,48 @@ segtree_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     return (PyObject*) self;
 }
 
-static int
-segtree_init(PyObject *op, PyObject *args, PyObject *kwds)
+static int segtree_init(PyObject *op, PyObject *args, PyObject *kwds)
 {
     segtreeobject *self = (segtreeobject*) op;
-    if (!PyArg_ParseTuple(args, "i", &self->size)) {
+    PyObject *identity = NULL;
+    PyObject *op_func = NULL;
+    if (!PyArg_ParseTuple(args, "nOO", &self->size, &identity, &op_func)) {
         return -1;
     }
-    self->tree = (int*) malloc(sizeof(int) * 2 * self->size);
+    if (!PyCallable_Check(op_func)) {
+        PyErr_SetString(PyExc_TypeError, "op must be callable");
+        return -1;
+    }
+    self->identity = identity;
+    Py_INCREF(identity);
+    self->op = op_func;
+    Py_INCREF(op_func);
+
+    self->tree = (PyObject**) PyMem_Calloc(2 * self->size, sizeof(PyObject*));
     if (self->tree == NULL) {
         PyErr_NoMemory();
         return -1;
     }
-    memset(self->tree, 0, sizeof(int) * 2 * self->size);
+    for (Py_ssize_t i = 0; i < 2 * self->size; i++) {
+        self->tree[i] = identity;
+        Py_INCREF(identity);
+    }
     return 0;
-};
+}
+
+static void segtree_dealloc(PyObject *op)
+{
+    segtreeobject *self = (segtreeobject*) op;
+    for (Py_ssize_t i = 0; i < 2 * self->size; i++) {
+        Py_XDECREF(self->tree[i]);
+    }
+    PyMem_Free(self->tree);
+    Py_XDECREF(self->identity);
+    Py_XDECREF(self->op);
+    Py_TYPE(self)->tp_free(self);
+}
+
+/* Iterator */
 
 static PyObject*
 segtree_iter(PyObject* op)
@@ -69,7 +88,9 @@ segtree_getitem(PyObject *op, Py_ssize_t index)
         PyErr_SetString(PyExc_IndexError, "index out of range");
         return NULL;
     }
-    return PyLong_FromLong(self->tree[self->size + index]);
+    PyObject *val = self->tree[self->size + index];
+    Py_INCREF(val);
+    return val;
 };
 
 static int
@@ -80,10 +101,18 @@ segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
         PyErr_SetString(PyExc_IndexError, "index out of range");
         return -1;
     }
-    index += self->size;    
-    self->tree[index] = PyLong_AsLong(value);
+    index += self->size;
+    Py_XDECREF(self->tree[index]);
+    self->tree[index] = value;
+    Py_INCREF(value);
+     
     while (index > 1) {
-        self->tree[index>>1] = self->tree[index] + self->tree[index^1];
+        PyObject *left = self->tree[index];
+        PyObject *right = self->tree[index ^ 1];
+        PyObject *combined = PyObject_CallFunction(self->op, "OO", left, right);
+        if (combined == NULL) return -1;
+        Py_XDECREF(self->tree[index >> 1]);
+        self->tree[index >> 1] = combined;
         index >>= 1;
     }
     return 0;
@@ -100,23 +129,36 @@ static PySequenceMethods segtree_sequence_methods = {
 static PyObject*
 segtree_query(PyObject *op, PyObject *args)
 {
-    segtreeobject* self = (segtreeobject*) op;
-    int lf, rg;
-    if (!PyArg_ParseTuple(args, "ii", &lf, &rg)) {
+    segtreeobject *self = (segtreeobject*) op;
+    Py_ssize_t lf, rg;
+    if (!PyArg_ParseTuple(args, "nn", &lf, &rg)) {
         return NULL;
     }
     lf += self->size;
     rg += self->size;
-    int pf = 0, sf = 0;
+    PyObject *res = self->identity;
+    Py_INCREF(res);
+
     while (lf < rg) {
-        if (lf & 1) pf = pf + self->tree[lf++];
-        if (rg & 1) sf = self->tree[--rg] + sf;
-        lf >>= 1; 
+        if (lf & 1) {
+            PyObject *new_res = PyObject_CallFunction(self->op, "OO", res, self->tree[lf]);
+            if (new_res == NULL) { Py_DECREF(res); return NULL; }
+            Py_DECREF(res);
+            res = new_res;
+            lf++;
+        }
+        if (rg & 1) {
+            rg--;
+            PyObject *new_res = PyObject_CallFunction(self->op, "OO", res, self->tree[rg]);
+            if (new_res == NULL) { Py_DECREF(res); return NULL; }
+            Py_DECREF(res);
+            res = new_res;
+        }
+        lf >>= 1;
         rg >>= 1;
     }
-    PyObject* response = PyLong_FromLong(pf + sf);
-    return response;
-}
+    return res;
+};
 
 static PyMethodDef segtree_methods[] = {
     {"query", segtree_query, METH_VARARGS, "Query a range [l, r)"},
