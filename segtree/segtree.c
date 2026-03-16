@@ -41,7 +41,8 @@ static PyMemberDef segtree_members[] = {
     {NULL},
 };
 
-static Py_ssize_t segtree_len(PyObject* op)
+static Py_ssize_t
+segtree_len(PyObject* op)
 {
     segtreeobject* self = (segtreeobject*) op;
     return self->size;
@@ -61,7 +62,8 @@ segtree_iter(PyObject* op)
     return (PyObject *) it;
 }
 
-static PyObject* segtree_set_one(PyObject *op, PyObject *args)
+static PyObject*
+segtree_set_one(PyObject *op, PyObject *args)
 {
     segtreeobject* self = (segtreeobject*) op;
     int pos, val;
@@ -78,7 +80,8 @@ static PyObject* segtree_set_one(PyObject *op, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject* segtree_query(PyObject *op, PyObject *args)
+static PyObject*
+segtree_query(PyObject *op, PyObject *args)
 {
     segtreeobject* self = (segtreeobject*) op;
     int lf, rg;
