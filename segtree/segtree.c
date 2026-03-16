@@ -1,11 +1,6 @@
 #include <Python.h>
 #include <stddef.h>
-
-typedef struct {
-    PyObject_HEAD
-    size_t size;
-    int* tree;
-} segtreeobject;
+#include "segtree_iterator.h"
 
 static void
 segtree_dealloc(PyObject *op)
@@ -51,6 +46,20 @@ static Py_ssize_t segtree_len(PyObject* op)
     segtreeobject* self = (segtreeobject*) op;
     return self->size;
 };
+
+static PyObject*
+segtree_iter(PyObject* op)
+{
+    segtreeobject* self = (segtreeobject*) op;
+    segtreeiterobject *it = PyObject_New(segtreeiterobject, &segtreeiter_type);
+    if (it == NULL) {
+        return NULL;
+    }
+    it->segtree = self;
+    Py_INCREF(self);
+    it->index = 0;
+    return (PyObject *) it;
+}
 
 static PyObject* segtree_set_one(PyObject *op, PyObject *args)
 {
@@ -109,6 +118,7 @@ static PyTypeObject segtreetype = {
     .tp_new = segtree_new,
     .tp_init = segtree_init,
     .tp_dealloc = segtree_dealloc,
+    .tp_iter = segtree_iter,
     .tp_as_sequence = &segtree_sequence_methods,
     .tp_members = segtree_members,
     .tp_methods = segtree_methods,
@@ -117,6 +127,10 @@ static PyTypeObject segtreetype = {
 static int
 segtree_module_exec(PyObject *m)
 {
+    if (PyType_Ready(&segtreeiter_type) < 0) {
+        return -1;
+    }
+
     if (PyType_Ready(&segtreetype) < 0) {
         return -1;
     }
