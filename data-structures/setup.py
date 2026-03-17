@@ -4,8 +4,8 @@ from setuptools import setup, Extension
 module = Extension("segtree", sources=["segtree/segtree.c"])
 
 setup(
-    name="Segtree",
-    version="1.0",
+    name="Segment Tree",
+    version="0.1",
     description="Python C API package",
     ext_modules=[module],
 )
