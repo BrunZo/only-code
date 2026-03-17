@@ -109,7 +109,8 @@ segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
     while (index > 1) {
         PyObject *left = self->tree[index];
         PyObject *right = self->tree[index ^ 1];
-        PyObject *combined = PyObject_CallFunction(self->op, "OO", left, right);
+        PyObject *args[2] = {left, right};
+        PyObject *combined = PyObject_Vectorcall(self->op, args, 2, NULL);
         if (combined == NULL) return -1;
         Py_XDECREF(self->tree[index >> 1]);
         self->tree[index >> 1] = combined;
@@ -141,7 +142,8 @@ segtree_query(PyObject *op, PyObject *args)
 
     while (lf < rg) {
         if (lf & 1) {
-            PyObject *new_res = PyObject_CallFunction(self->op, "OO", res, self->tree[lf]);
+            PyObject *args[2] = {res, self->tree[lf]};
+            PyObject *new_res = PyObject_Vectorcall(self->op, args, 2, NULL);
             if (new_res == NULL) { Py_DECREF(res); return NULL; }
             Py_DECREF(res);
             res = new_res;
@@ -149,7 +151,8 @@ segtree_query(PyObject *op, PyObject *args)
         }
         if (rg & 1) {
             rg--;
-            PyObject *new_res = PyObject_CallFunction(self->op, "OO", res, self->tree[rg]);
+            PyObject *args[2] = {res, self->tree[rg]};
+            PyObject *new_res = PyObject_Vectorcall(self->op, args, 2, NULL);
             if (new_res == NULL) { Py_DECREF(res); return NULL; }
             Py_DECREF(res);
             res = new_res;
