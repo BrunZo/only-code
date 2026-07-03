@@ -172,7 +172,7 @@ static PyMethodDef segtree_methods[] = {
 
 static PyTypeObject segtreetype = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "segtree.segtree",
+    .tp_name = "csegtree.segtree",
     .tp_doc = PyDoc_STR("segtree"),
     .tp_basicsize = sizeof(segtreeobject),
     .tp_itemsize = 0,
@@ -211,13 +211,13 @@ static PyModuleDef_Slot segtree_module_slots[] = {
 
 static struct PyModuleDef segtree_module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "segtree",     // Module name
-    .m_doc = "A simple segtree module", 
-    .m_size = 0, 
+    .m_name = "csegtree",     // Module name
+    .m_doc = "A simple segtree module",
+    .m_size = 0,
     .m_slots = segtree_module_slots,
 };
 
 PyMODINIT_FUNC
-PyInit_segtree(void) {
+PyInit_csegtree(void) {
     return PyModuleDef_Init(&segtree_module);
 }

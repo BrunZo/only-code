@@ -37,7 +37,7 @@ segtreeiter_iter(PyObject *op)
 
 static PyTypeObject segtreeiter_type = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "segtree.segtree_iterator",
+    .tp_name = "csegtree.segtree_iterator",
     .tp_basicsize = sizeof(segtreeiterobject),
     .tp_dealloc = segtreeiter_dealloc,
     .tp_flags = Py_TPFLAGS_DEFAULT,
