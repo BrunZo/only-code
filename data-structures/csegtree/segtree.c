@@ -107,14 +107,14 @@ segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value)
     Py_INCREF(value);
      
     while (index > 1) {
-        PyObject *left = self->tree[index];
-        PyObject *right = self->tree[index ^ 1];
+        index >>= 1;
+        PyObject *left = self->tree[2 * index];
+        PyObject *right = self->tree[2 * index + 1];
         PyObject *args[2] = {left, right};
         PyObject *combined = PyObject_Vectorcall(self->op, args, 2, NULL);
         if (combined == NULL) return -1;
-        Py_XDECREF(self->tree[index >> 1]);
-        self->tree[index >> 1] = combined;
-        index >>= 1;
+        Py_XDECREF(self->tree[index]);
+        self->tree[index] = combined;
     }
     return 0;
 };
@@ -137,29 +137,36 @@ segtree_query(PyObject *op, PyObject *args)
     }
     lf += self->size;
     rg += self->size;
-    PyObject *res = self->identity;
-    Py_INCREF(res);
+    PyObject *resl = self->identity;
+    Py_INCREF(resl);
+    PyObject *resr = self->identity;
+    Py_INCREF(resr);
 
     while (lf < rg) {
         if (lf & 1) {
-            PyObject *args[2] = {res, self->tree[lf]};
+            PyObject *args[2] = {resl, self->tree[lf]};
             PyObject *new_res = PyObject_Vectorcall(self->op, args, 2, NULL);
-            if (new_res == NULL) { Py_DECREF(res); return NULL; }
-            Py_DECREF(res);
-            res = new_res;
+            if (new_res == NULL) { Py_DECREF(resl); Py_DECREF(resr); return NULL; }
+            Py_DECREF(resl);
+            resl = new_res;
             lf++;
         }
         if (rg & 1) {
             rg--;
-            PyObject *args[2] = {res, self->tree[rg]};
+            PyObject *args[2] = {self->tree[rg], resr};
             PyObject *new_res = PyObject_Vectorcall(self->op, args, 2, NULL);
-            if (new_res == NULL) { Py_DECREF(res); return NULL; }
-            Py_DECREF(res);
-            res = new_res;
+            if (new_res == NULL) { Py_DECREF(resl); Py_DECREF(resr); return NULL; }
+            Py_DECREF(resr);
+            resr = new_res;
         }
         lf >>= 1;
         rg >>= 1;
     }
+
+    PyObject *combine_args[2] = {resl, resr};
+    PyObject *res = PyObject_Vectorcall(self->op, combine_args, 2, NULL);
+    Py_DECREF(resl);
+    Py_DECREF(resr);
     return res;
 };
 
