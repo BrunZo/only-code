@@ -170,8 +170,46 @@ segtree_query(PyObject *op, PyObject *args)
     return res;
 };
 
+static PyObject*
+segtree_build(PyObject *op, PyObject *args)
+{
+    segtreeobject *self = (segtreeobject*) op;
+    PyObject *leaves;
+    if (!PyArg_ParseTuple(args, "O", &leaves)) {
+        return NULL;
+    }
+    PyObject *seq = PySequence_Fast(leaves, "build() argument must be iterable");
+    if (seq == NULL) {
+        return NULL;
+    }
+    if (PySequence_Fast_GET_SIZE(seq) != self->size) {
+        Py_DECREF(seq);
+        PyErr_SetString(PyExc_ValueError, "leaves length must match segtree size");
+        return NULL;
+    }
+
+    for (Py_ssize_t i = 0; i < self->size; i++) {
+        PyObject *val = PySequence_Fast_GET_ITEM(seq, i);
+        Py_INCREF(val);
+        Py_DECREF(self->tree[self->size + i]);
+        self->tree[self->size + i] = val;
+    }
+    Py_DECREF(seq);
+
+    for (Py_ssize_t i = self->size - 1; i > 0; i--) {
+        PyObject *cargs[2] = {self->tree[2 * i], self->tree[2 * i + 1]};
+        PyObject *combined = PyObject_Vectorcall(self->op, cargs, 2, NULL);
+        if (combined == NULL) return NULL;
+        Py_DECREF(self->tree[i]);
+        self->tree[i] = combined;
+    }
+
+    Py_RETURN_NONE;
+};
+
 static PyMethodDef segtree_methods[] = {
     {"query", segtree_query, METH_VARARGS, "Query a range [l, r)"},
+    {"build", segtree_build, METH_VARARGS, "Bulk-load leaves in O(n)"},
     {NULL, NULL, 0, NULL},
 };
 

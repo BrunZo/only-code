@@ -18,3 +18,4 @@ static PyObject* segtree_getitem(PyObject *op, Py_ssize_t index);
 static int segtree_setitem(PyObject *op, Py_ssize_t index, PyObject *value);
 
 static PyObject* segtree_query(PyObject *op, PyObject *args);
+static PyObject* segtree_build(PyObject *op, PyObject *args);
